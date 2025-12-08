@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture Notes Generator MVP</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 900px;
+        }
+        h1 {
+            color: #1e3a8a;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .upload-section:hover {
+            border-color: #1e3a8a;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        button {
+            background-color: #1e3a8a;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover:not(:disabled) {
+            background-color: #1c4587;
+        }
+        button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status-loading {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .status-error {
+            background-color: #fee2e2;
+            color: #ef4444;
+        }
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+        .results-section h2 {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 5px;
+            margin-top: 20px;
+            color: #1e3a8a;
+        }
+        .transcript-box {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            background-color: #f9fafb;
+            font-size: 0.9em;
+        }
+        .notes-box {
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background-color: #f9fafb;
+        }
+        .notes-box p, .notes-box ul, .notes-box ol {
+            margin-top: 0;
+        }
+        .notes-box li {
+            margin-bottom: 5px;
+        }
+        .download-button {
+            margin-top: 15px;
+            background-color: #059669;
+        }
+        .download-button:hover:not(:disabled) {
+            background-color: #047857;
+        }
+        .history-section {
+            margin-top: 30px;
+            display: none;
+        }
+        .history-section h2 {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 5px;
+            margin-top: 20px;
+            color: #1e3a8a;
+        }
+        .history-item {
+            border: 1px solid #e5e7eb;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background-color: #f9fafb;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .history-item:hover {
+            background-color: #f3f4f6;
+        }
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .history-item-filename {
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        .history-item-date {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+        .history-item-size {
+            color: #6b7280;
+            font-size: 0.85em;
+        }
+        .refresh-button {
+            background-color: #059669;
+            margin-bottom: 15px;
+        }
+        .refresh-button:hover:not(:disabled) {
+            background-color: #047857;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lecture Notes Generator</h1>
+        <p>Upload an audio file (wav, mp3, m4a, etc.) to get a full transcript and AI-generated study notes.</p>
+
+        <div class="upload-section" id="drop-area">
+            <p><strong>Drag & Drop Audio File Here</strong> or <span style="color: #1e3a8a; text-decoration: underline;">Click to Select File</span></p>
+            <input type="file" id="audio-file-input" accept="audio/*, video/mp4">
+            <p id="file-name-display" style="font-weight: normal; margin-top: 10px; color: #4b5563;">No file selected</p>
+        </div>
+
+        <button id="submit-button" disabled>Upload & Generate Notes</button>
+
+        <div id="status-container"></div>
+
+        <div class="results-section" id="results-section">
+            <button id="download-notes-button" class="download-button">Download Notes as TXT</button>
+
+            <h2>AI-Generated Notes</h2>
+            <div id="notes-output" class="notes-box"></div>
+
+            <h2>Full Transcript</h2>
+            <div id="transcript-output" class="transcript-box"></div>
+        </div>
+
+        <div class="history-section" id="history-section">
+            <h2>Upload History</h2>
+            <button id="refresh-history-button" class="refresh-button">Refresh History</button>
+            <div id="history-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8000/process-lecture";
+        const HISTORY_API_URL = "http://localhost:8000/history";
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('audio-file-input');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const submitButton = document.getElementById('submit-button');
+        const statusContainer = document.getElementById('status-container');
+        const resultsSection = document.getElementById('results-section');
+        const transcriptOutput = document.getElementById('transcript-output');
+        const notesOutput = document.getElementById('notes-output');
+        const downloadButton = document.getElementById('download-notes-button');
+        const historySection = document.getElementById('history-section');
+        const historyList = document.getElementById('history-list');
+        const refreshHistoryButton = document.getElementById('refresh-history-button');
+
+        let selectedFile = null;
+
+        // --- File Selection Logic ---
+
+        // Handle click on drop area
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        // Handle file input change
+        fileInput.addEventListener('change', (e) => {
+            handleFile(e.target.files[0]);
+        });
+
+        // Handle drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.style.borderColor = '#1e3a8a', false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.style.borderColor = '#ccc', false);
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file) {
+                // Create a new FileList-like object and update the input
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                handleFile(file);
+            }
+        }, false);
+
+        function handleFile(file) {
+            if (file) {
+                selectedFile = file;
+                fileNameDisplay.textContent = `Selected file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                submitButton.disabled = false;
+                clearStatus();
+                resultsSection.style.display = 'none';
+            } else {
+                selectedFile = null;
+                fileNameDisplay.textContent = 'No file selected';
+                submitButton.disabled = true;
+            }
+        }
+
+        // --- Status and Error Display ---
+
+        function showStatus(message, type = 'loading') {
+            statusContainer.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+        }
+
+        function clearStatus() {
+            statusContainer.innerHTML = '';
+        }
+
+        // --- Main Submission Logic ---
+
+        submitButton.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            submitButton.disabled = true;
+            resultsSection.style.display = 'none';
+            clearStatus();
+            
+            try {
+                showStatus('Uploading file...', 'loading');
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData,
+                    // Don't set Content-Type header - browser will set it with boundary
+                });
+
+                if (!response.ok) {
+                    // Try to parse error response
+                    let errorText = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorData = await response.json();
+                        errorText = errorData.error || errorData.detail || errorText;
+                    } catch (e) {
+                        // If JSON parsing fails, use status text
+                        const text = await response.text();
+                        if (text) errorText = text;
+                    }
+                    throw new Error(errorText);
+                }
+
+                showStatus('Processing: Transcribing and Summarizing...', 'loading');
+
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    clearStatus();
+                    
+                    // Display results
+                    transcriptOutput.textContent = result.transcript;
+                    
+                    // Use a simple markdown-to-html approach for notes (or just display raw markdown)
+                    // Since the backend returns structured text, we can display it as-is for this MVP
+                    // For better formatting, a markdown library would be needed, but we stick to minimal JS.
+                    notesOutput.innerHTML = formatNotes(result.notes); 
+                    
+                    resultsSection.style.display = 'block';
+                    
+                    // Store notes for download
+                    downloadButton.dataset.notes = result.notes;
+
+                    // Refresh history after successful upload
+                    loadHistory();
+
+                } else {
+                    const errorMessage = result.error || "An unknown error occurred on the server.";
+                    showStatus(`Error: ${errorMessage}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showStatus(`Error: ${error.message}. Ensure the backend server is running at http://localhost:8000.`, 'error');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+
+        // --- History Functions ---
+
+        async function loadHistory() {
+            try {
+                const response = await fetch(HISTORY_API_URL);
+                if (!response.ok) {
+                    console.error('Failed to load history');
+                    return;
+                }
+                const result = await response.json();
+                
+                if (result.status === 'ok' && result.history && result.history.length > 0) {
+                    displayHistory(result.history);
+                    historySection.style.display = 'block';
+                } else {
+                    historySection.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+
+        function displayHistory(history) {
+            historyList.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p style="color: #6b7280; text-align: center;">No upload history yet.</p>';
+                return;
+            }
+
+            history.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                const date = item.created_at ? new Date(item.created_at).toLocaleString() : 'Unknown date';
+                const fileSizeMB = (item.file_size / 1024 / 1024).toFixed(2);
+                
+                historyItem.innerHTML = `
+                    <div class="history-item-header">
+                        <span class="history-item-filename">${escapeHtml(item.filename)}</span>
+                        <span class="history-item-date">${date}</span>
+                    </div>
+                    <div class="history-item-size">${fileSizeMB} MB • ${item.file_type || 'Unknown type'}</div>
+                `;
+                
+                historyItem.addEventListener('click', () => {
+                    displayUploadResult(item);
+                });
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        function displayUploadResult(item) {
+            transcriptOutput.textContent = item.transcript;
+            notesOutput.innerHTML = formatNotes(item.notes);
+            downloadButton.dataset.notes = item.notes;
+            resultsSection.style.display = 'block';
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        refreshHistoryButton.addEventListener('click', loadHistory);
+
+        // Load history on page load
+        loadHistory();
+
+        // --- Notes Formatting (Minimal Markdown to HTML) ---
+        function formatNotes(markdownText) {
+            // Simple replacement for bold and newlines to make it look decent
+            let html = markdownText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\n/g, '<br>');
+            
+            // For a proper MVP, we'll rely on the LLM to return text that looks good with <br>
+            // A full markdown parser is out of scope for "minimal JS".
+            return html;
+        }
+
+        // --- Download Notes Logic ---
+        downloadButton.addEventListener('click', () => {
+            const notesContent = downloadButton.dataset.notes;
+            if (!notesContent) return;
+
+            const blob = new Blob([notesContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lecture_notes.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+    </script>
+</body>
+</html>
