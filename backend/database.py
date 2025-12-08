@@ -57,6 +57,9 @@ def init_db():
 # Track if database is initialized
 _db_initialized = False
 
+# Track if database is initialized
+_db_initialized = False
+
 def get_db():
     """Dependency function to get database session."""
     global _db_initialized
