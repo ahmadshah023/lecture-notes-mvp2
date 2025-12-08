@@ -97,6 +97,8 @@ app.add_middleware(
 
 # Initialize database on startup
 # For Vercel/serverless, initialize lazily instead of on startup
+# Note: Vercel with Mangum uses lifespan="off", so startup events won't run
+# Database will be initialized on first use via get_db dependency
 @app.on_event("startup")
 async def startup_event():
     try:

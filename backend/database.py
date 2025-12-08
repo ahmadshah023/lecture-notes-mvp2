@@ -54,8 +54,22 @@ def init_db():
         raise
 
 
+# Track if database is initialized
+_db_initialized = False
+
 def get_db():
     """Dependency function to get database session."""
+    global _db_initialized
+    # Initialize database on first use (for serverless environments)
+    if not _db_initialized:
+        try:
+            init_db()
+            _db_initialized = True
+        except Exception as e:
+            # Already initialized or will be created on first query
+            print(f"Database init check: {e}")
+            _db_initialized = True  # Mark as attempted
+    
     db = SessionLocal()
     try:
         yield db
