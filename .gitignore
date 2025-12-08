@@ -26,6 +26,9 @@ ENV/
 *.swp
 *.swo
 
+# Vercel
+.vercel
+
 # OS
 .DS_Store
 Thumbs.db
