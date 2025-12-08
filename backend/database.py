@@ -8,7 +8,13 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # Database URL - using SQLite for simplicity
-DATABASE_URL = "sqlite:///./lecture_notes.db"
+# For Vercel/serverless, use /tmp directory (writable)
+if os.getenv("VERCEL"):
+    # Vercel serverless environment - use /tmp
+    DATABASE_URL = "sqlite:////tmp/lecture_notes.db"
+else:
+    # Local or other environments
+    DATABASE_URL = "sqlite:///./lecture_notes.db"
 
 # Create engine
 engine = create_engine(
@@ -39,8 +45,13 @@ class LectureUpload(Base):
 
 def init_db():
     """Initialize the database by creating all tables."""
-    Base.metadata.create_all(bind=engine)
-    print("Database initialized successfully.")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        # In serverless, this might fail on first call, but will work on subsequent calls
+        raise
 
 
 def get_db():

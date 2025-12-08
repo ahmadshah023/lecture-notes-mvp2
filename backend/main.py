@@ -96,9 +96,15 @@ app.add_middleware(
 )
 
 # Initialize database on startup
+# For Vercel/serverless, initialize lazily instead of on startup
 @app.on_event("startup")
 async def startup_event():
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        # Log error but don't fail startup (for serverless environments)
+        print(f"Database initialization warning: {e}")
+        # Database will be initialized on first use
 
 # --- Helper Functions ---
 
