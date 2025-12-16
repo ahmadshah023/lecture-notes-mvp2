@@ -1,6 +1,7 @@
 """
-Vercel serverless function entry point for FastAPI app.
-Uses Mangum to properly wrap FastAPI for serverless environments.
+Vercel serverless entrypoint for the FastAPI app.
+Exports the ASGI app directly (no Mangum) to avoid Vercel's handler
+auto-detection calling issubclass() on non-class objects.
 """
 import sys
 import os
@@ -12,38 +13,32 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Set environment to handle serverless
+# Mark environment as Vercel so backend can switch to /tmp SQLite
 os.environ.setdefault("VERCEL", "1")
 
-# Try to import and setup
 try:
     print("Starting import...")
-    # Import the FastAPI app
-    from backend.main import app
+    from backend.main import app as fastapi_app
     print("FastAPI app imported successfully")
-    
-    # Use Mangum to wrap FastAPI for serverless
-    from mangum import Mangum
-    print("Mangum imported successfully")
-    
-    # Create handler for Vercel
-    handler = Mangum(app, lifespan="off")
-    print("Handler created successfully")
-    
+
+    # Expose ASGI app for Vercel's Python runtime
+    app = fastapi_app
+    __all__ = ["app"]
+    print("ASGI app exported for Vercel")
+
 except Exception as e:
-    # Log the full error
+    # Log the full error for Vercel runtime logs
     error_traceback = traceback.format_exc()
     print(f"ERROR during initialization: {str(e)}")
     print(f"Traceback: {error_traceback}")
-    
-    # Create a minimal error handler if import fails
+
+    # Fallback minimal FastAPI app to surface the error in HTTP response
     try:
         from fastapi import FastAPI
         from fastapi.responses import JSONResponse
-        from mangum import Mangum
-        
+
         error_app = FastAPI()
-        
+
         @error_app.get("/")
         @error_app.get("/{path:path}")
         async def error_handler(path: str = ""):
@@ -53,16 +48,17 @@ except Exception as e:
                     "error": "Failed to initialize application",
                     "message": str(e),
                     "type": type(e).__name__,
-                    "traceback": error_traceback
-                }
+                    "traceback": error_traceback,
+                },
             )
-        
-        handler = Mangum(error_app, lifespan="off")
-        print("Error handler created")
+
+        app = error_app
+        __all__ = ["app"]
+        print("Fallback error app exported")
     except Exception as e2:
-        # Last resort - create a simple handler
-        def handler(event, context):
+        # Last resort: plain dict response
+        def app(event, context):
             return {
                 "statusCode": 500,
-                "body": f"Critical error: {str(e)} | Secondary error: {str(e2)}"
+                "body": f"Critical error: {str(e)} | Secondary error: {str(e2)}",
             }

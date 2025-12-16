@@ -50,9 +50,8 @@ except Exception as e:
 
 
 # Define constants
-# Note: Vercel has 4.5MB limit, but we'll keep 20MB for other platforms
-# Adjust based on your deployment platform
-MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "20"))
+# Note: Vercel has a 4.5MB limit; default to 4MB unless overridden
+MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "4"))
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 ALLOWED_MIME_TYPES = [
     "audio/wav",
