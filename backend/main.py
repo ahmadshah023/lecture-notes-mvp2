@@ -590,6 +590,29 @@ async def get_upload_by_id(upload_id: int, db: Session = Depends(get_db)) -> Dic
             "error": str(e)
         }, status_code=500)
 
+
+@app.delete("/history")
+async def clear_history(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """
+    Deletes all upload history. This MVP has no authentication or per-user
+    segregation, so use this as a manual privacy control to clear stored
+    notes/transcripts.
+    """
+    try:
+        deleted = db.query(LectureUpload).delete()
+        db.commit()
+        return JSONResponse(content={
+            "status": "ok",
+            "deleted": deleted
+        })
+    except Exception as e:
+        db.rollback()
+        print(f"Error clearing history: {e}")
+        return JSONResponse(content={
+            "status": "error",
+            "error": str(e)
+        }, status_code=500)
+
 # --- Rate Limiting Note (as requested in the prompt) ---
 # For simple rate limiting, you could use a library like 'fastapi-limiter'
 # or implement a simple token bucket algorithm using a cache (like Redis).

@@ -163,6 +163,13 @@
         .refresh-button:hover:not(:disabled) {
             background-color: #047857;
         }
+        .clear-button {
+            background-color: #dc2626;
+            margin-bottom: 15px;
+        }
+        .clear-button:hover:not(:disabled) {
+            background-color: #b91c1c;
+        }
     </style>
 </head>
 <body>
@@ -192,7 +199,10 @@
 
         <div class="history-section" id="history-section">
             <h2>Upload History</h2>
-            <button id="refresh-history-button" class="refresh-button">Refresh History</button>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                <button id="refresh-history-button" class="refresh-button">Refresh History</button>
+                <button id="clear-history-button" class="clear-button">Clear History (everyone)</button>
+            </div>
             <div id="history-list"></div>
         </div>
     </div>
@@ -213,6 +223,7 @@
         const historySection = document.getElementById('history-section');
         const historyList = document.getElementById('history-list');
         const refreshHistoryButton = document.getElementById('refresh-history-button');
+        const clearHistoryButton = document.getElementById('clear-history-button');
 
         let selectedFile = null;
 
@@ -421,6 +432,30 @@
         }
 
         refreshHistoryButton.addEventListener('click', loadHistory);
+
+        clearHistoryButton.addEventListener('click', async () => {
+            const confirmClear = confirm("This will delete all history for everyone. Continue?");
+            if (!confirmClear) return;
+
+            try {
+                showStatus('Clearing history...', 'loading');
+                const response = await fetch(HISTORY_API_URL, { method: 'DELETE' });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    const msg = err.error || `Failed to clear history (HTTP ${response.status})`;
+                    throw new Error(msg);
+                }
+                // After successful delete, refresh list
+                await loadHistory();
+                showStatus('History cleared.', 'loading');
+            } catch (error) {
+                console.error('Error clearing history:', error);
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                // Clear status after a short delay
+                setTimeout(() => clearStatus(), 1500);
+            }
+        });
 
         // Load history on page load
         loadHistory();
