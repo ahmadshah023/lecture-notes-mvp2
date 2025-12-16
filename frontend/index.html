@@ -198,8 +198,9 @@
     </div>
 
     <script>
-        const API_URL = "http://localhost:8000/process-lecture";
-        const HISTORY_API_URL = "http://localhost:8000/history";
+        // Use relative URLs so this works both locally and on Vercel
+        const API_URL = "/process-lecture";
+        const HISTORY_API_URL = "/history";
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('audio-file-input');
         const fileNameDisplay = document.getElementById('file-name-display');
@@ -344,7 +345,7 @@
 
             } catch (error) {
                 console.error('Fetch error:', error);
-                showStatus(`Error: ${error.message}. Ensure the backend server is running at http://localhost:8000.`, 'error');
+                showStatus(`Error: ${error.message}`, 'error');
             } finally {
                 submitButton.disabled = false;
             }
